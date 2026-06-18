@@ -1,19 +1,16 @@
 // ===================================
-// 1. FUNGSI DARK/LIGHT MODE (DIPERBAIKI)
+// 1. FUNGSI DARK/LIGHT MODE
 // ===================================
-/* ---- THEME TOGGLE FUNCTIONALITY ---- */
 function applyTheme(theme) {
   const themeBtn = document.getElementById('theme-toggle');
   const themeBtnM = document.getElementById('theme-toggle-mobile');
   
   if (theme === 'dark') {
     document.documentElement.classList.add('dark');
-    // Ubah ikon menjadi matahari jika mode gelap aktif
     if (themeBtn) themeBtn.innerHTML = '<i class="fa-solid fa-sun"></i>';
     if (themeBtnM) themeBtnM.innerHTML = '<i class="fa-solid fa-sun"></i>';
   } else {
     document.documentElement.classList.remove('dark');
-    // Ubah ikon menjadi bulan jika mode terang aktif
     if (themeBtn) themeBtn.innerHTML = '<i class="fa-solid fa-moon"></i>';
     if (themeBtnM) themeBtnM.innerHTML = '<i class="fa-solid fa-moon"></i>';
   }
@@ -25,18 +22,9 @@ function toggleTheme() {
   applyTheme(isDark ? 'light' : 'dark');
 }
 
-// Ambil tema yang disimpan sebelumnya, atau gunakan mode 'dark' sebagai default
+// Set default theme awal sebelum DOM loading agar tidak flickr
 const savedTheme = localStorage.getItem('portfolio-theme') || 'dark';
 applyTheme(savedTheme);
-
-// Pasang event listener ke tombol setelah DOM selesai dimuat
-document.addEventListener('DOMContentLoaded', () => {
-  const themeBtn = document.getElementById('theme-toggle');
-  const themeBtnM = document.getElementById('theme-toggle-mobile');
-  
-  if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
-  if (themeBtnM) themeBtnM.addEventListener('click', toggleTheme);
-});
 
 // ===================================
 // 2. HAMBURGER MENU
@@ -47,56 +35,75 @@ function toggleMenu() {
     if (!navMenu || !hamburger) return;
 
     const isExpanded = navMenu.classList.toggle('active');
+    navMenu.classList.toggle('hidden'); // Menampilkan menu mobile Tailwind
     hamburger.classList.toggle('active'); 
     hamburger.setAttribute('aria-expanded', isExpanded);
 }
 
 // ===================================
-// 3. TYPING EFFECT
+// 3. TYPING EFFECT (DIPERBAIKI)
 // ===================================
 function initializeTypingEffect() {
-    const text = ["Santri HSI BOARDING SCHOOL.", "Beradab & Berakhlak mulia.", "Pintar Mengaji dan IT", "Bisa Berbahasa Arab."]; 
+    const text = ["Santri HSI BOARDING SCHOOL.", "Beradab & Berakhlak mulia.", "Pintar Mengaji dan IT.", "Bisa Berbahasa Arab."]; 
     let wordIndex = 0;
     let charIndex = 0;
+    let isDeleting = false;
     const typingElement = document.getElementById('typing-text');
     if (!typingElement) return;
 
     function type() {
-        if (wordIndex < text.length) {
-            if (charIndex < text[wordIndex].length) {
-                typingElement.textContent += text[wordIndex].charAt(charIndex);
-                charIndex++;
-                setTimeout(type, 100); 
-            } else {
-                setTimeout(erase, 1200); 
-            }
-        }
-    }
-    function erase() {
-        if (charIndex > 0) {
-            typingElement.textContent = text[wordIndex].substring(0, charIndex - 1);
+        const currentWord = text[wordIndex];
+        
+        if (isDeleting) {
+            // Menghapus karakter
+            typingElement.textContent = currentWord.substring(0, charIndex - 1);
             charIndex--;
-            setTimeout(erase, 30); 
         } else {
-            wordIndex = (wordIndex + 1) % text.length;
-            setTimeout(type, 100);
+            // Mengetik karakter
+            typingElement.textContent = currentWord.substring(0, charIndex + 1);
+            charIndex++;
         }
+
+        // Penentuan Kecepatan Ketik
+        let typeSpeed = isDeleting ? 40 : 100;
+
+        // Jika selesai mengetik satu kalimat full
+        if (!isDeleting && charIndex === currentWord.length) {
+            typeSpeed = 1500; // Jeda saat teks selesai diketik
+            isDeleting = true;
+        } 
+        // Jika selesai menghapus satu kalimat full
+        else if (isDeleting && charIndex === 0) {
+            isDeleting = false;
+            wordIndex = (wordIndex + 1) % text.length; // Lanjut ke kalimat berikutnya
+            typeSpeed = 300; // Jeda sebelum mulai mengetik lagi
+        }
+
+        setTimeout(type, typeSpeed);
     }
+    
     type(); 
 }
 
 // ===================================
-// 4. PROJECT FILTER
+// 4. PROJECT FILTER (DIPERBAIKI SINKRONISASI CLASS)
 // ===================================
 function initializeProjectFilter() {
-    const filterButtons = document.querySelectorAll('.filter-item');
+    // Diubah dari .filter-item ke .filter-btn menyesuaikan HTML kamu
+    const filterButtons = document.querySelectorAll('.filter-btn');
     const projectCards = document.querySelectorAll('.project-card');
     if (filterButtons.length === 0) return;
 
     filterButtons.forEach(button => {
         button.addEventListener('click', () => {
-            filterButtons.forEach(btn => btn.classList.remove('active'));
-            button.classList.add('active');
+            filterButtons.forEach(btn => {
+                btn.classList.remove('active', 'bg-primary', 'text-white');
+                btn.classList.add('bg-lightBg', 'dark:bg-darkBg');
+            });
+            
+            button.classList.add('active', 'bg-primary', 'text-white');
+            button.classList.remove('bg-lightBg', 'dark:bg-darkBg');
+            
             const category = button.getAttribute('data-filter');
             projectCards.forEach(card => {
                 if (category === 'all' || card.getAttribute('data-category') === category) {
@@ -115,49 +122,43 @@ function initializeProjectFilter() {
 // 5. INITIALIZATION (DOM LOAD)
 // ===================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Jalankan Theme dari Storage
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    if (savedTheme === 'light') {
-        document.body.classList.add('light-mode');
-        document.body.classList.remove('dark-mode');
-        updateThemeIcon(false);
-    } else {
-        document.body.classList.add('dark-mode');
-        document.body.classList.remove('light-mode');
-        updateThemeIcon(true);
-    }
+    // Pasang Event Listener ke tombol theme switcher
+    const themeBtn = document.getElementById('theme-toggle');
+    const themeBtnM = document.getElementById('theme-toggle-mobile');
+    if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
+    if (themeBtnM) themeBtnM.addEventListener('click', toggleTheme);
 
-    // Pasang Event Listener ke tombol
-    const desktopBtn = document.getElementById('theme-toggle-desktop');
-    const mobileBtn = document.getElementById('theme-toggle-mobile');
-    if (desktopBtn) desktopBtn.onclick = toggleTheme;
-    if (mobileBtn) mobileBtn.onclick = toggleTheme;
+    // Hamburger Mobile Listener
+    const hamburger = document.getElementById('hamburgerMenu');
+    if (hamburger) hamburger.addEventListener('click', toggleMenu);
 
+    // Jalankan Efek
     initializeTypingEffect();
     initializeProjectFilter();
-});
 
-document.querySelectorAll('.nav-menu a').forEach(link => {
-    link.addEventListener('click', () => {
-        const navMenu = document.getElementById('navMenu');
-        const hamburger = document.getElementById('hamburgerMenu');
-        if (navMenu.classList.contains('active')) {
-            navMenu.classList.remove('active');
-            hamburger.classList.remove('active');
-        }
-    });
-});
-
-// Smooth Scroll
-document.querySelectorAll('a[href^="#"]').forEach(link => {
-    link.addEventListener('click', function (e) {
-        const targetID = this.getAttribute("href");
-        if (targetID.length > 1) {
-            const target = document.querySelector(targetID);
-            if (target) {
-                e.preventDefault();
-                window.scrollTo({ top: target.offsetTop - 70, behavior: "smooth" });
+    // Auto close menu mobile saat link diklik
+    document.querySelectorAll('#navMenu a').forEach(link => {
+        link.addEventListener('click', () => {
+            const navMenu = document.getElementById('navMenu');
+            const hamburger = document.getElementById('hamburgerMenu');
+            if (navMenu && !navMenu.classList.contains('hidden')) {
+                navMenu.classList.add('hidden');
+                if (hamburger) hamburger.classList.remove('active');
             }
-        }
+        });
+    });
+
+    // Smooth Scroll
+    document.querySelectorAll('a[href^="#"]').forEach(link => {
+        link.addEventListener('click', function (e) {
+            const targetID = this.getAttribute("href");
+            if (targetID.length > 1) {
+                const target = document.querySelector(targetID);
+                if (target) {
+                    e.preventDefault();
+                    window.scrollTo({ top: target.offsetTop - 70, behavior: "smooth" });
+                }
+            }
+        });
     });
 });
